@@ -87,3 +87,17 @@ build_lib_example(
     ${libflow-monitor}
     ${libtraffic-control}
 )
+
+build_lib_example(
+  NAME drr-example
+  SOURCE_FILES drr-example.cc  
+  LIBRARIES_TO_LINK
+    ${libpoint-to-point}
+    ${libpoint-to-point-layout}
+    ${libinternet}
+    ${libinternet-apps}
+    ${libapplications}
+    ${libflow-monitor}
+    ${libtraffic-control}
+    ${libconfig-store}
+)

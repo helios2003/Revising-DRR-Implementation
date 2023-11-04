@@ -5,6 +5,7 @@ build_lib(
     helper/traffic-control-helper.cc
     model/cobalt-queue-disc.cc
     model/codel-queue-disc.cc
+    model/drr-queue-disc.cc
     model/fifo-queue-disc.cc
     model/fq-cobalt-queue-disc.cc
     model/fq-codel-queue-disc.cc
@@ -26,6 +27,7 @@ build_lib(
     model/fifo-queue-disc.h
     model/fq-cobalt-queue-disc.h
     model/fq-codel-queue-disc.h
+    model/drr-queue-disc.h
     model/fq-pie-queue-disc.h
     model/mq-queue-disc.h
     model/packet-filter.h
@@ -42,6 +44,7 @@ build_lib(
     test/adaptive-red-queue-disc-test-suite.cc
     test/cobalt-queue-disc-test-suite.cc
     test/codel-queue-disc-test-suite.cc
+    test/drr-queue-disc-test-suite.cc
     test/fifo-queue-disc-test-suite.cc
     test/pie-queue-disc-test-suite.cc
     test/prio-queue-disc-test-suite.cc
