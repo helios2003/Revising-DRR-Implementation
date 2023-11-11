@@ -52,6 +52,23 @@ class Ipv6PacketFilter : public PacketFilter
     int32_t DoClassify(Ptr<QueueDiscItem> item) const override = 0;
 };
 
+class DRRIpv6PacketFilter : public Ipv6PacketFilter {
+public:
+  /**
+   * \brief Get the type ID.
+   * \return the object TypeId
+   */
+  static TypeId GetTypeId (void);
+
+  DRRIpv6PacketFilter ();
+  virtual ~DRRIpv6PacketFilter ();
+
+private:
+  virtual int32_t DoClassify (Ptr<QueueDiscItem> item) const;
+
+};
+
+
 } // namespace ns3
 
 #endif /* IPV6_PACKET_FILTER */

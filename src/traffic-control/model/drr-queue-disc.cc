@@ -20,21 +20,23 @@
  *          Vilas M <vilasnitk19@gmail.com>
 */
 
+#include "drr-queue-disc.h"
+
 #include "ns3/log.h"
 #include "ns3/string.h"
 #include "ns3/queue.h"
-#include "drr-queue-disc.h"
 #include "ns3/net-device-queue-interface.h"
 #include "ns3/ipv4-packet-filter.h"
-#include "codel-queue-disc.h"
 
-namespace ns3 {
+namespace ns3 
+{
 
 NS_LOG_COMPONENT_DEFINE ("DRRQueueDisc");
 
 NS_OBJECT_ENSURE_REGISTERED (DRRFlow);
 
-TypeId DRRFlow::GetTypeId (void)
+TypeId 
+DRRFlow::GetTypeId (void)
 {
   static TypeId tid = TypeId ("ns3::DRRFlow")
     .SetParent<QueueDiscClass> ()
