@@ -126,7 +126,7 @@ main(int argc, char* argv[])
 {
     std::string bandwidth = "10Mbps";
     std::string delay = "5ms";
-    std::string queueDiscType = "PfifoFast";
+    std::string queueDiscType = "drr";
     uint32_t queueDiscSize = 1000;
     uint32_t netdevicesQueueSize = 50;
     bool bql = false;
@@ -232,6 +232,13 @@ main(int argc, char* argv[])
         tchBottleneck.AddChildQueueDisc(handle, cid[0], "ns3::FifoQueueDisc");
         tchBottleneck.AddChildQueueDisc(handle, cid[1], "ns3::RedQueueDisc");
     }
+    else if (queueDiscType == "drr")
+    {
+        uint handle = tchBottleneck.SetRootQueueDisc("ns3::DRRQueueDisc");
+        Config::SetDefault ("ns3::DRRQueueDisc::ByteLimit", UintegerValue (100 * 1024));
+        Config::SetDefault ("ns3::DRRQueueDisc::Flows", UintegerValue (1024));
+        tchBottleneck.AddPacketFilter(handle, "ns3::DRRIpv4PacketFilter");
+    }
     else
     {
         NS_ABORT_MSG("--queueDiscType not valid");
@@ -252,7 +259,6 @@ main(int argc, char* argv[])
     NetDeviceContainer devicesBottleneckLink = bottleneckLink.Install(n2.Get(0), n3.Get(0));
     QueueDiscContainer qdiscs;
     qdiscs = tchBottleneck.Install(devicesBottleneckLink);
-
     address.NewNetwork();
     Ipv4InterfaceContainer interfacesBottleneck = address.Assign(devicesBottleneckLink);
 

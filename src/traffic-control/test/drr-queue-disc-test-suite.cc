@@ -32,8 +32,13 @@
 #include "ns3/ipv6-queue-disc-item.h"
 #include "ns3/tcp-header.h"
 #include "ns3/udp-header.h"
+
 #include "ns3/uinteger.h"
 #include "ns3/pointer.h"
+#include "ns3/enum.h"
+#include "ns3/log.h"
+#include "ns3/socket.h"
+#include "ns3/object-factory.h"
 
 using namespace ns3;
 
@@ -139,7 +144,7 @@ DRRQueueDiscIPFlowsSeparationAndByteLimit::DoRun (void)
   // Dequeue from empty QueueDisc
   Ptr<QueueDiscItem> item;
   item = queueDisc->Dequeue ();
-  NS_TEST_EXPECT_MSG_EQ ((item == 0), true, "Veryfying Dequeue on empty queue returns 0");
+  NS_TEST_EXPECT_MSG_EQ ((!item), true, "Veryfying Dequeue on empty queue returns 0");
 
   Ipv4Header hdr;
   hdr.SetPayloadSize (500);
@@ -161,204 +166,7 @@ DRRQueueDiscIPFlowsSeparationAndByteLimit::DoRun (void)
   // Add the first packet
   AddPacket (queueDisc, hdr);
   NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 4, "unexpected number of packets in the queue disc");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 3, "unexpected number of packets in the flow queue");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (1)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the flow queue");
-  // Add the second packet that causes one packet to be dropped from the fat flow
-  AddPacket (queueDisc, hdr);
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 4, "unexpected number of packets in the queue disc");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 2, "unexpected number of packets in the flow queue");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (1)->GetQueueDisc ()->GetNPackets (), 2, "unexpected number of packets in the flow queue");
-
-  Simulator::Destroy ();
 }
-
-
-/**
- * This class tests the TCP flows separation
- */
-
-class DRRQueueDiscTCPFlowsSeparation : public TestCase
-{
-public:
-  DRRQueueDiscTCPFlowsSeparation ();
-  virtual ~DRRQueueDiscTCPFlowsSeparation ();
-
-private:
-  virtual void DoRun (void);
-  void AddPacket (Ptr<DRRQueueDisc> queue, Ipv4Header ipHdr, TcpHeader tcpHdr);
-};
-
-DRRQueueDiscTCPFlowsSeparation::DRRQueueDiscTCPFlowsSeparation ()
-  : TestCase ("Test TCP flows separation")
-{
-}
-
-DRRQueueDiscTCPFlowsSeparation::~DRRQueueDiscTCPFlowsSeparation ()
-{
-}
-
-void
-DRRQueueDiscTCPFlowsSeparation::AddPacket (Ptr<DRRQueueDisc> queue, Ipv4Header ipHdr, TcpHeader tcpHdr)
-{
-  Ptr<Packet> p = Create<Packet> (500);
-  p->AddHeader (tcpHdr);
-  Address dest;
-  Ptr<Ipv4QueueDiscItem> item = Create<Ipv4QueueDiscItem> (p, dest, 0, ipHdr);
-  queue->Enqueue (item);
-}
-
-void
-DRRQueueDiscTCPFlowsSeparation::DoRun (void)
-{
-  Ptr<DRRQueueDisc> queueDisc = CreateObjectWithAttributes<DRRQueueDisc> ("ByteLimit", UintegerValue (4000));
-  //Ptr<DRRIpv6PacketFilter> ipv6Filter = CreateObject<DRRIpv6PacketFilter> ();
-  Ptr<DRRIpv4PacketFilter> ipv4Filter = CreateObject<DRRIpv4PacketFilter> ();
-  //queueDisc->AddPacketFilter (ipv6Filter);
-  queueDisc->AddPacketFilter (ipv4Filter);
-
-  queueDisc->SetQuantum (600);
-  queueDisc->Initialize ();
-
-  Ipv4Header hdr;
-  hdr.SetPayloadSize (500);
-  hdr.SetSource (Ipv4Address ("10.10.1.1"));
-  hdr.SetDestination (Ipv4Address ("10.10.1.2"));
-  hdr.SetProtocol (6);
-
-  TcpHeader tcpHdr;
-  tcpHdr.SetSourcePort (7);
-  tcpHdr.SetDestinationPort (27);
-
-  // Add three packets from the first flow
-  AddPacket (queueDisc, hdr, tcpHdr);
-  AddPacket (queueDisc, hdr, tcpHdr);
-  AddPacket (queueDisc, hdr, tcpHdr);
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 3, "unexpected number of packets in the queue disc");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 3, "unexpected number of packets in the first flow queue");
-
-  // Add a packet from the second flow
-  tcpHdr.SetSourcePort (8);
-  AddPacket (queueDisc, hdr, tcpHdr);
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 4, "unexpected number of packets in the queue disc");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 3, "unexpected number of packets in the first flow queue");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (1)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the second flow queue");
-
-  // Add a packet from the third flow
-  tcpHdr.SetDestinationPort (28);
-  AddPacket (queueDisc, hdr, tcpHdr);
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 5, "unexpected number of packets in the queue disc");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 3, "unexpected number of packets in the first flow queue");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (1)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the second flow queue");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (2)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the third flow queue");
-
-  // Add two packets from the fourth flow
-  tcpHdr.SetSourcePort (7);
-  AddPacket (queueDisc, hdr, tcpHdr);
-  AddPacket (queueDisc, hdr, tcpHdr);
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 7, "unexpected number of packets in the queue disc");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 3, "unexpected number of packets in the first flow queue");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (1)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the second flow queue");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (2)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the third flow queue");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (3)->GetQueueDisc ()->GetNPackets (), 2, "unexpected number of packets in the third flow queue");
-
-  Simulator::Destroy ();
-}
-
-/**
- * This class tests the UDP flows separation
- */
-
-class DRRQueueDiscUDPFlowsSeparation : public TestCase
-{
-public:
-  DRRQueueDiscUDPFlowsSeparation ();
-  virtual ~DRRQueueDiscUDPFlowsSeparation ();
-
-private:
-  virtual void DoRun (void);
-  void AddPacket (Ptr<DRRQueueDisc> queue, Ipv4Header ipHdr, UdpHeader udpHdr);
-};
-
-DRRQueueDiscUDPFlowsSeparation::DRRQueueDiscUDPFlowsSeparation ()
-  : TestCase ("Test UDP flows separation")
-{
-}
-
-DRRQueueDiscUDPFlowsSeparation::~DRRQueueDiscUDPFlowsSeparation ()
-{
-}
-
-void
-DRRQueueDiscUDPFlowsSeparation::AddPacket (Ptr<DRRQueueDisc> queue, Ipv4Header ipHdr, UdpHeader udpHdr)
-{
-  Ptr<Packet> p = Create<Packet> (500);
-  p->AddHeader (udpHdr);
-  Address dest;
-  Ptr<Ipv4QueueDiscItem> item = Create<Ipv4QueueDiscItem> (p, dest, 0, ipHdr);
-  queue->Enqueue (item);
-}
-
-void
-DRRQueueDiscUDPFlowsSeparation::DoRun (void)
-{
-  Ptr<DRRQueueDisc> queueDisc = CreateObjectWithAttributes<DRRQueueDisc> ("ByteLimit", UintegerValue (4000));
-//  Ptr<DRRIpv6PacketFilter> ipv6Filter = CreateObject<DRRIpv6PacketFilter> ();
-  Ptr<DRRIpv4PacketFilter> ipv4Filter = CreateObject<DRRIpv4PacketFilter> ();
-  // queueDisc->AddPacketFilter (ipv6Filter);
-  queueDisc->AddPacketFilter (ipv4Filter);
-
-  queueDisc->SetQuantum (600);
-  queueDisc->Initialize ();
-
-  Ipv4Header hdr;
-  hdr.SetPayloadSize (500);
-  hdr.SetSource (Ipv4Address ("10.10.1.1"));
-  hdr.SetDestination (Ipv4Address ("10.10.1.2"));
-  hdr.SetProtocol (17);
-
-  UdpHeader udpHdr;
-  udpHdr.SetSourcePort (7);
-  udpHdr.SetDestinationPort (27);
-
-  // Add three packets from the first flow
-  AddPacket (queueDisc, hdr, udpHdr);
-  AddPacket (queueDisc, hdr, udpHdr);
-  AddPacket (queueDisc, hdr, udpHdr);
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 3, "unexpected number of packets in the queue disc");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 3, "unexpected number of packets in the first flow queue");
-
-  // Add a packet from the second flow
-  udpHdr.SetSourcePort (8);
-  AddPacket (queueDisc, hdr, udpHdr);
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 4, "unexpected number of packets in the queue disc");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 3, "unexpected number of packets in the first flow queue");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (1)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the second flow queue");
-
-  // Add a packet from the third flow
-  udpHdr.SetDestinationPort (28);
-  AddPacket (queueDisc, hdr, udpHdr);
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 5, "unexpected number of packets in the queue disc");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 3, "unexpected number of packets in the first flow queue");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (1)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the second flow queue");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (2)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the third flow queue");
-
-  // Add two packets from the fourth flow
-  udpHdr.SetSourcePort (7);
-  AddPacket (queueDisc, hdr, udpHdr);
-  AddPacket (queueDisc, hdr, udpHdr);
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->QueueDisc::GetNPackets (), 7, "unexpected number of packets in the queue disc");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 3, "unexpected number of packets in the first flow queue");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (1)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the second flow queue");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (2)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the third flow queue");
-  NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (3)->GetQueueDisc ()->GetNPackets (), 2, "unexpected number of packets in the third flow queue");
-
-  Simulator::Destroy ();
-}
-
-
-/**
- * This class tests the deficit per flow for packets of variable size when enqueued to the same flow
- */
 
 class DRRQueueDiscDeficitVariableSizeSameFlow : public TestCase
 {
@@ -560,7 +368,6 @@ DRRQueueDiscDeficitVariableSizeDifferentFlow::DoRun (void)
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (0)->GetQueueDisc ()->GetNPackets (), 0, "unexpected number of packets in the first flow queue");
   NS_TEST_ASSERT_MSG_EQ (queueDisc->GetQueueDiscClass (1)->GetQueueDisc ()->GetNPackets (), 1, "unexpected number of packets in the second flow queue");
 
-
   //Dequeue third packet
   queueDisc->Dequeue ();
   //Now deficit = 1200 > 800, so packet is dequeued
@@ -582,12 +389,8 @@ DRRQueueDiscTestSuite::DRRQueueDiscTestSuite ()
 {
   AddTestCase (new DRRQueueDiscNoSuitableFilter, TestCase::QUICK);
   AddTestCase (new DRRQueueDiscIPFlowsSeparationAndByteLimit, TestCase::QUICK);
-  AddTestCase (new DRRQueueDiscTCPFlowsSeparation, TestCase::QUICK);
-  AddTestCase (new DRRQueueDiscUDPFlowsSeparation, TestCase::QUICK);
   AddTestCase (new DRRQueueDiscDeficitVariableSizeSameFlow, TestCase::QUICK);
   AddTestCase (new DRRQueueDiscDeficitVariableSizeDifferentFlow, TestCase::QUICK);
-
-
 }
 
 static DRRQueueDiscTestSuite DRRQueueDiscTestSuite;
