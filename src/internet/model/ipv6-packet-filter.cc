@@ -63,43 +63,42 @@ Ipv6PacketFilter::CheckProtocol(Ptr<QueueDiscItem> item) const
 }
 
 // ------------------------------------------------------------------------- //
-NS_OBJECT_ENSURE_REGISTERED (DRRIpv6PacketFilter);
+NS_OBJECT_ENSURE_REGISTERED(DRRIpv6PacketFilter);
 
 TypeId
-DRRIpv6PacketFilter::GetTypeId (void)
+DRRIpv6PacketFilter::GetTypeId()
 {
-  static TypeId tid = TypeId ("ns3::DRRIpv6PacketFilter")
-    .SetParent<Ipv6PacketFilter> ()
-    .SetGroupName ("Internet")
-    .AddConstructor<DRRIpv6PacketFilter> ()
-    ;
-  return tid;
+    static TypeId tid = TypeId("ns3::DRRIpv6PacketFilter")
+                            .SetParent<Ipv6PacketFilter>()
+                            .SetGroupName("Internet")
+                            .AddConstructor<DRRIpv6PacketFilter>();
+    return tid;
 }
 
-DRRIpv6PacketFilter::DRRIpv6PacketFilter ()
+DRRIpv6PacketFilter::DRRIpv6PacketFilter()
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 }
 
-DRRIpv6PacketFilter::~DRRIpv6PacketFilter ()
+DRRIpv6PacketFilter::~DRRIpv6PacketFilter()
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 }
 
 int32_t
-DRRIpv6PacketFilter::DoClassify (Ptr<QueueDiscItem> item) const
+DRRIpv6PacketFilter::DoClassify(Ptr<QueueDiscItem> item) const
 {
-    NS_LOG_FUNCTION (this << item);
-    Ptr<Ipv6QueueDiscItem> ipv6Item = DynamicCast<Ipv6QueueDiscItem> (item);
+    NS_LOG_FUNCTION(this << item);
+    Ptr<Ipv6QueueDiscItem> ipv6Item = DynamicCast<Ipv6QueueDiscItem>(item);
 
-        if (!ipv6Item)
-        {
-            NS_LOG_DEBUG ("No match");
-            return PacketFilter::PF_NO_MATCH;
-        }
-    Ipv6Header m_header = ipv6Item->GetHeader ();
-    Ipv6Address src = m_header.GetSource ();
-    Ipv6Address dest = m_header.GetDestination ();
+    if (!ipv6Item)
+    {
+        NS_LOG_DEBUG("No match");
+        return PacketFilter::PF_NO_MATCH;
+    }
+    Ipv6Header m_header = ipv6Item->GetHeader();
+    Ipv6Address src = m_header.GetSource();
+    Ipv6Address dest = m_header.GetDestination();
     uint8_t prot = m_header.GetNextHeader();
 
     TcpHeader tcpHdr;
@@ -135,8 +134,8 @@ DRRIpv6PacketFilter::DoClassify (Ptr<QueueDiscItem> item) const
     buf[36] = destPort & 0xff;
     uint32_t hash = Hash32((char*)buf, 37);
 
-        NS_LOG_DEBUG("Found Ipv6 packet; hash of the five tuple " << hash);
+    NS_LOG_DEBUG("Found Ipv6 packet; hash of the five tuple " << hash);
 
-        return hash;
+    return hash;
 }
 } // namespace ns3

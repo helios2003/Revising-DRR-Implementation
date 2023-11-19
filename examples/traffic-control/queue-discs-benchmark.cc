@@ -16,6 +16,7 @@
  *
  * Authors: Pasquale Imputato <p.imputato@gmail.com>
  *          Stefano Avallone <stefano.avallone@unina.it>
+ *
  */
 
 // This example serves as a benchmark for all the queue discs (with BQL enabled or not)
@@ -235,8 +236,8 @@ main(int argc, char* argv[])
     else if (queueDiscType == "drr")
     {
         uint handle = tchBottleneck.SetRootQueueDisc("ns3::DRRQueueDisc");
-        Config::SetDefault ("ns3::DRRQueueDisc::ByteLimit", UintegerValue (100 * 1024));
-        Config::SetDefault ("ns3::DRRQueueDisc::Flows", UintegerValue (1024));
+        Config::SetDefault("ns3::DRRQueueDisc::ByteLimit", UintegerValue(100 * 1024));
+        Config::SetDefault("ns3::DRRQueueDisc::Flows", UintegerValue(1024));
         tchBottleneck.AddPacketFilter(handle, "ns3::DRRIpv4PacketFilter");
     }
     else

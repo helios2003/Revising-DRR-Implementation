@@ -21,15 +21,16 @@
  */
 
 #include "ipv4-packet-filter.h"
+
 #include "ipv4-queue-disc-item.h"
-#include "ns3/enum.h"
-#include "ns3/log.h"
 #include "tcp-header.h"
 #include "udp-header.h"
-#include "ns3/uinteger.h"
+
+#include "ns3/enum.h"
+#include "ns3/log.h"
 #include "ns3/packet.h"
-#include "ns3/tcp-header.h"
-#include "ns3/udp-header.h"
+#include "ns3/uinteger.h"
+
 #include <typeinfo>
 
 namespace ns3
@@ -65,87 +66,85 @@ Ipv4PacketFilter::CheckProtocol(Ptr<QueueDiscItem> item) const
 }
 
 // ------------------------------------------------------------------------- //
-NS_OBJECT_ENSURE_REGISTERED (DRRIpv4PacketFilter);
+NS_OBJECT_ENSURE_REGISTERED(DRRIpv4PacketFilter);
 
 TypeId
-DRRIpv4PacketFilter::GetTypeId (void)
+DRRIpv4PacketFilter::GetTypeId()
 {
-  static TypeId tid = TypeId ("ns3::DRRIpv4PacketFilter")
-    .SetParent<Ipv4PacketFilter> ()
-    .SetGroupName ("Internet")
-    .AddConstructor<DRRIpv4PacketFilter> ()
-    ;
-  return tid;
+    static TypeId tid = TypeId("ns3::DRRIpv4PacketFilter")
+                            .SetParent<Ipv4PacketFilter>()
+                            .SetGroupName("Internet")
+                            .AddConstructor<DRRIpv4PacketFilter>();
+    return tid;
 }
 
-DRRIpv4PacketFilter::DRRIpv4PacketFilter ()
+DRRIpv4PacketFilter::DRRIpv4PacketFilter()
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 }
 
-DRRIpv4PacketFilter::~DRRIpv4PacketFilter ()
+DRRIpv4PacketFilter::~DRRIpv4PacketFilter()
 {
-  NS_LOG_FUNCTION (this);
+    NS_LOG_FUNCTION(this);
 }
 
 int32_t
-DRRIpv4PacketFilter::DoClassify (Ptr<QueueDiscItem> item) const
+DRRIpv4PacketFilter::DoClassify(Ptr<QueueDiscItem> item) const
 {
-  NS_LOG_FUNCTION (this << item);
-  Ptr<Ipv4QueueDiscItem> ipv4Item = DynamicCast<Ipv4QueueDiscItem> (item);
+    NS_LOG_FUNCTION(this << item);
+    Ptr<Ipv4QueueDiscItem> ipv4Item = DynamicCast<Ipv4QueueDiscItem>(item);
 
     if (!ipv4Item)
-      {
-        NS_LOG_DEBUG ("No match");
+    {
+        NS_LOG_DEBUG("No match");
         return PacketFilter::PF_NO_MATCH;
-      }
+    }
 
-  Ipv4Header hdr = ipv4Item->GetHeader ();
-  Ipv4Address src = hdr.GetSource ();
-  Ipv4Address dest = hdr.GetDestination ();
-  uint8_t prot = hdr.GetProtocol ();
-  uint16_t fragOffset = hdr.GetFragmentOffset ();
+    Ipv4Header hdr = ipv4Item->GetHeader();
+    Ipv4Address src = hdr.GetSource();
+    Ipv4Address dest = hdr.GetDestination();
+    uint8_t prot = hdr.GetProtocol();
+    uint16_t fragOffset = hdr.GetFragmentOffset();
 
-  TcpHeader tcpHdr;
-  UdpHeader udpHdr;
-  uint16_t srcPort = 0;
-  uint16_t destPort = 0;
+    TcpHeader tcpHdr;
+    UdpHeader udpHdr;
+    uint16_t srcPort = 0;
+    uint16_t destPort = 0;
 
-  if (prot == 6 && fragOffset == 0) // TCP
-  {
-      ipv4Item->GetPacket()->PeekHeader(tcpHdr);
-      srcPort = tcpHdr.GetSourcePort();
-      destPort = tcpHdr.GetDestinationPort();
-  }
-  else if (prot == 17 && fragOffset == 0) // UDP
-  {
-      ipv4Item->GetPacket()->PeekHeader(udpHdr);
-      srcPort = udpHdr.GetSourcePort();
-      destPort = udpHdr.GetDestinationPort();
-  }
-  if (prot != 6 && prot != 17)
-  {
-      NS_LOG_WARN("Unknown transport protocol, no port number included in hash computation");
-  }
+    if (prot == 6 && fragOffset == 0) // TCP
+    {
+        ipv4Item->GetPacket()->PeekHeader(tcpHdr);
+        srcPort = tcpHdr.GetSourcePort();
+        destPort = tcpHdr.GetDestinationPort();
+    }
+    else if (prot == 17 && fragOffset == 0) // UDP
+    {
+        ipv4Item->GetPacket()->PeekHeader(udpHdr);
+        srcPort = udpHdr.GetSourcePort();
+        destPort = udpHdr.GetDestinationPort();
+    }
+    if (prot != 6 && prot != 17)
+    {
+        NS_LOG_WARN("Unknown transport protocol, no port number included in hash computation");
+    }
 
-  /* serialize the 5-tuple and the perturbation in buf */
-  uint8_t buf[13];
-  src.Serialize(buf);
-  dest.Serialize(buf + 4);
-  buf[8] = prot;
-  buf[9] = (srcPort >> 8) & 0xff;
-  buf[10] = srcPort & 0xff;
-  buf[11] = (destPort >> 8) & 0xff;
-  buf[12] = destPort & 0xff;
+    /* serialize the 5-tuple and the perturbation in buf */
+    uint8_t buf[13];
+    src.Serialize(buf);
+    dest.Serialize(buf + 4);
+    buf[8] = prot;
+    buf[9] = (srcPort >> 8) & 0xff;
+    buf[10] = srcPort & 0xff;
+    buf[11] = (destPort >> 8) & 0xff;
+    buf[12] = destPort & 0xff;
 
-  // Linux calculates jhash2 (jenkins hash), we calculate murmur3 because it is
-  // already available in ns-3
-  uint32_t hash = Hash32((char*)buf, 13);
+    // Linux calculates jhash2 (jenkins hash), we calculate murmur3 because it is
+    // already available in ns-3
+    uint32_t hash = Hash32((char*)buf, 13);
 
-  NS_LOG_DEBUG("Hash value " << hash);
+    NS_LOG_DEBUG("Hash value " << hash);
 
-  return hash;
+    return hash;
 }
-
 
 } // namespace ns3

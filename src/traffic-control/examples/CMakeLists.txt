@@ -90,7 +90,7 @@ build_lib_example(
 
 build_lib_example(
   NAME drr-example
-  SOURCE_FILES drr-example.cc  
+  SOURCE_FILES drr-example.cc
   LIBRARIES_TO_LINK
     ${libpoint-to-point}
     ${libpoint-to-point-layout}

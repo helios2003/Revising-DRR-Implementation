@@ -52,22 +52,21 @@ class Ipv6PacketFilter : public PacketFilter
     int32_t DoClassify(Ptr<QueueDiscItem> item) const override = 0;
 };
 
-class DRRIpv6PacketFilter : public Ipv6PacketFilter {
-public:
-  /**
-   * \brief Get the type ID.
-   * \return the object TypeId
-   */
-  static TypeId GetTypeId (void);
+class DRRIpv6PacketFilter : public Ipv6PacketFilter
+{
+  public:
+    /**
+     * \brief Get the type ID.
+     * \return the object TypeId
+     */
+    static TypeId GetTypeId();
 
-  DRRIpv6PacketFilter ();
-  virtual ~DRRIpv6PacketFilter ();
+    DRRIpv6PacketFilter();
+    ~DRRIpv6PacketFilter() override;
 
-private:
-  virtual int32_t DoClassify (Ptr<QueueDiscItem> item) const;
-
+  private:
+    int32_t DoClassify(Ptr<QueueDiscItem> item) const override;
 };
-
 
 } // namespace ns3
 
